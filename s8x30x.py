@@ -243,8 +243,8 @@ class S8X30x:
                       Form('011sssss lllddddd', (OT.siv, OT.blen, OT.dr)),
                       Form('011sssss lllddddd', (OT.siv, OT.blen, OT.div))),
                                               
-        Inst('xec',   Form('100sssss jjjjjjjj', (OT.sr, OT.jmp8)),               # execute intrustion at S+i
-                      Form('100sssss llljjjjj', (OT.siv, OT.blen, OT.jmp5))),
+        Inst('xec',   Form('100sssss jjjjjjjj', (OT.jmp8, OT.sr)),               # execute intrustion at S+i
+                      Form('100sssss llljjjjj', (OT.jmp5, OT.siv, OT.blen))),
                                               
                                               
         Inst('nzt',   Form('101sssss jjjjjjjj', (OT.sr, OT.jmp8)),               # jump if S is non-zero
@@ -285,8 +285,6 @@ class S8X30x:
                 if fields[f].mask[i] & (1 << j):
                     v = (v << 1) | ((inst[i] >> j) & 1)
                     width += 1
-        if width == 8 and v > 127 and f == 'j':
-            v += (65536 - 256)
         return v
 
 
@@ -318,6 +316,13 @@ class S8X30x:
                     continue
                 elif OT.div in form.operands and not dr.is_iv():
                     continue
+            if 'j' in fields:
+                if OT.jmp8 in form.operands:
+                    # XXX should it be (pc+1) & 0xff00?
+                    fields['j'] = fields['j'] + (pc & 0xff00)
+                elif OT.jmp5 in form.operands:
+                    # XXX should it be (pc+1) & 0xffe0?
+                    fields['j'] = fields['j'] + (pc & 0xffe0)
             return form, fields
         return None, None
 
@@ -369,23 +374,7 @@ class S8X30x:
                 elif operand == OT.imm:
                     value = self.ihex(ftemp['i'])
                     del ftemp['i']
-                elif operand == OT.jmp5:
-                    # XXX using PC or PC+1?
-                    target = ftemp['j'] + (pc & 0xffe0)
-                    del ftemp['j']
-                    if target in symtab_by_value:
-                        value = symtab_by_value[target]
-                    else:
-                        value = self.ihex(target)
-                elif operand == OT.jmp8:
-                    # XXX using PC or PC+1?
-                    target = ftemp['j'] + (pc & 0xff00)
-                    del ftemp['j']
-                    if target in symtab_by_value:
-                        value = symtab_by_value[target]
-                    else:
-                        value = self.ihex(target)
-                elif operand == OT.jmp13:
+                elif operand in [OT.jmp5, OT.jmp8, OT.jmp13]:
                     target = ftemp['j']
                     del ftemp['j']
                     if target in symtab_by_value:
