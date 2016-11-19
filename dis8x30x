@@ -1,0 +1,103 @@
+#!/usr/bin/python3
+# Signetics 8X300, 8X305 disassembler
+# Copyright 2016 Eric Smith <spacewar@gmail.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of version 3 of the GNU General Public License
+# as published by the Free Software Foundation.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import sys
+
+from s8x30x import S8X30x
+from intelhex import IntelHex
+from memory import Memory
+
+def pass1(s8x30x, fw, base):
+    symtab_by_value = {}
+    for pc in range(base, base+len(fw)):
+        (dis, operands, fields) = s8x30x.disassemble_inst(fw, pc, disassemble_operands = False)
+        if 'j' in fields:
+            symtab_by_value[fields['j']] = 'x%04x' % fields['j']
+    return symtab_by_value
+
+def pass2(s8x30x, fw, base,
+          symtab_by_value, show_obj = False, output_file = sys.stdout):
+    for pc in range(base, base+len(fw)):
+        s = ''
+        (dis, operands, fields) = s8x30x.disassemble_inst(fw, pc, symtab_by_value)
+        if show_obj:
+            s += '%04x: '% pc
+            for i in range(len(fw[pc])):
+                s += '%02x ' % fw[pc][i]
+        if pc in symtab_by_value:
+            label = symtab_by_value[pc] + ':'
+        else:
+            label = ''
+        s += '%-8s%-8s%s' % (label, dis, operands)
+        output_file.write(s + '\n')
+    
+
+def disassemble(s8x30x, fw, show_obj = False, output_file = sys.stdout,
+                base = 0):
+    symtab_by_value = pass1(s8x30x, fw, base)
+    #symtab_by_name = { v: k for k, v in symtab_by_value.items() }
+    pass2(s8x30x, fw, base, symtab_by_value, show_obj = show_obj, output_file = output_file)
+
+
+# type function for argparse to support numeric arguments in hexadecimal
+# ("0x" prefix) as well as decimal (no prefix)
+def auto_int(x):
+    return int(x, 0)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description = 'Disassembler for Signetics 8X300/8X305')
+
+    parser.add_argument('-l', '--listing', action='store_true',
+                        help = 'generate output in listing format')
+
+    fmt_group = parser.add_mutually_exclusive_group()
+    fmt_group.add_argument('--binary', action='store_const',
+                           dest='inputformat',
+                           const='binary',
+                           help = 'input file format is raw binary (default)')
+    fmt_group.add_argument('--hex', action='store_const',
+                           dest='inputformat',
+                           const='hex',
+                           help = 'input file format is Intel hex')
+    
+    parser.add_argument('-o', '--output', type=argparse.FileType('w'),
+                        default = sys.stdout,
+                        help = 'disassembly output file')
+
+    parser.add_argument('input',
+                        type = argparse.FileType('rb'),
+                        nargs = '*',
+                        help = 'input file(s), multiple files will be interleaved (useful for separate even, odd files)')
+
+    args = parser.parse_args()
+    #print(args)
+
+    s8x30x = S8X30x()
+
+    if len(args.input) < 2:
+        print('Minimum two object files required', file = sys.stderr)
+        sys.exit(2)
+
+    data = [f.read() for f in args.input]
+
+    if args.inputformat is 'hex':
+        data = [IntelHex().read(d) for d in data]
+        
+    memory = Memory(data)
+
+    disassemble(s8x30x, memory, show_obj = args.listing, output_file = args.output)
