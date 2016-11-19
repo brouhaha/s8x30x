@@ -43,6 +43,15 @@ def pass2(s8x30x, fw, base,
         else:
             label = ''
         s += '%-8s%-8s%s' % (label, dis, operands)
+        ext = []
+        rd = fw[pc][2] & 0x7 
+        if rd != 0x7:
+            ext += ['rd%d' % rd]
+        wr = (fw[pc][2] >> 4) & 0x7 
+        if wr != 0x0:
+            ext += ['wr%d' % wr]
+        if len(ext):
+            s += ' // '+ ','.join(ext)
         output_file.write(s + '\n')
     
 
