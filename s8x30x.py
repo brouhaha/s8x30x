@@ -101,7 +101,8 @@ OT = Enum('OT', ['sr',           # source register
                  'blen',         # length, 1-8 bits (8 encoded as zero)
                  'brot',         # rotation, 0-7 bits
                  'imm',          # immediate value, 5 or 8 bit
-                 'jmp',          # jump target (absolute address)
+                 'jmp5', 'jmp8', # jump target (within page)
+                 'jmp13'         # jump target (absolute address)
                 ])
 
 
@@ -242,17 +243,17 @@ class S8X30x:
                       Form('011sssss lllddddd', (OT.siv, OT.blen, OT.dr)),
                       Form('011sssss lllddddd', (OT.siv, OT.blen, OT.div))),
                                               
-        Inst('xmit',  Form('100ddddd iiiiiiii', (OT.imm, OT.dr)),               # immediate -> dest
-                      Form('100ddddd llliiiii', (OT.imm, OT.blen, OT.div))),
+        Inst('xec',   Form('100sssss jjjjjjjj', (OT.sr, OT.jmp8)),               # execute intrustion at S+i
+                      Form('100sssss llljjjjj', (OT.siv, OT.blen, OT.jmp5))),
                                               
                                               
-        Inst('nzt',   Form('101sssss iiiiiiii', (OT.sr, OT.imm)),               # jump if S is non-zero
-                      Form('101sssss llliiiii', (OT.siv, OT.blen, OT.imm))),
+        Inst('nzt',   Form('101sssss jjjjjjjj', (OT.sr, OT.jmp8)),               # jump if S is non-zero
+                      Form('101sssss llljjjjj', (OT.siv, OT.blen, OT.jmp5))),
                                               
-        Inst('xec',   Form('110sssss iiiiiiii', (OT.sr, OT.imm)),               # execute intrustion at S+i
-                      Form('110sssss llliiiii', (OT.siv, OT.blen, OT.imm))),
+        Inst('xmit',  Form('110ddddd iiiiiiii', (OT.imm, OT.dr)),               # immediate -> dest
+                      Form('110ddddd llliiiii', (OT.imm, OT.blen, OT.div))),
                                               
-        Inst('jmp',   Form('111jjjjj jjjjjjjj', (OT.jmp,)))
+        Inst('jmp',   Form('111jjjjj jjjjjjjj', (OT.jmp13,)))
     ]
 
 
@@ -305,7 +306,18 @@ class S8X30x:
             fields = { }
             for f in form.fields:
                 fields[f] = self.__extract_field(opcode, form.fields, f)
-                # XXX need to check source, dest fields for correct types
+            if 's' in fields:
+                sr = Reg(fields['s'])
+                if OT.sr in form.operands and not sr.is_src_reg():
+                    continue
+                elif OT.siv in form.operands and not sr.is_iv():
+                    continue
+            if 'd' in fields:
+                dr = Reg(fields['d'])
+                if OT.dr in form.operands and not dr.is_dest_reg():
+                    continue
+                elif OT.div in form.operands and not dr.is_iv():
+                    continue
             return form, fields
         return None, None
 
@@ -330,7 +342,7 @@ class S8X30x:
         try:
             inst, form, fields = self.inst_search(fw, pc)
         except BadInstruction:
-            return 1, 'db      ', '%s' % self.ihex(fw[pc]), {}
+            return 'dw      ', '%s' % self.ihex((fw[pc][0] << 8) + fw[pc][1]), {}
 
         s = '%-6s' % inst.mnem
         operands = []
@@ -347,17 +359,33 @@ class S8X30x:
                 elif operand == OT.brot:
                     v = ftemp['r']
                     del ftemp['r']
-                    value = '(' + self.ihex(v) + ')'
+                    value = '(%d)' % v
                 elif operand == OT.blen:
                     v = ftemp['l']
                     del ftemp['l']
                     if v == 0:
                         v = 8
-                    value = self.ihex(v)
+                    value = '%d' % v
                 elif operand == OT.imm:
                     value = self.ihex(ftemp['i'])
                     del ftemp['i']
-                elif operand == OT.jmp:
+                elif operand == OT.jmp5:
+                    # XXX using PC or PC+1?
+                    target = ftemp['j'] + (pc & 0xffe0)
+                    del ftemp['j']
+                    if target in symtab_by_value:
+                        value = symtab_by_value[target]
+                    else:
+                        value = self.ihex(target)
+                elif operand == OT.jmp8:
+                    # XXX using PC or PC+1?
+                    target = ftemp['j'] + (pc & 0xff00)
+                    del ftemp['j']
+                    if target in symtab_by_value:
+                        value = symtab_by_value[target]
+                    else:
+                        value = self.ihex(target)
+                elif operand == OT.jmp13:
                     target = ftemp['j']
                     del ftemp['j']
                     if target in symtab_by_value:
