@@ -36,24 +36,23 @@ class BadInstruction(Exception):
 
 
 
-@unique
 class Reg(IntEnum):
-    aux  = 0o00     # aka r0
+    aux  = 0o00;  r0  = 0o00
     r1   = 0o01
     r2   = 0o02
     r3   = 0o03
     r4   = 0o04
     r5   = 0o05
     r6   = 0o06
-    ivl  = 0o07  # left bank register
-    ovf  = 0o10
+    ivl  = 0o07;  r7  = 0o07  # left bank register
+    ovf  = 0o10;  r10 = 0o10
     r11  = 0o11
-    r12  = 0o12  # 8x305 only, can't use for normal XMIT
-    r13  = 0o13  # 8x305 only, can't use for normal XMIT
-    r14  = 0o14  # 8x305 only
-    r15  = 0o15  # 8x305 only
-    r16  = 0o16  # 8x305 only
-    ivr  = 0o17  # right bank register
+    r12  = 0o12               # 8x305 only, can't use for normal XMIT
+    r13  = 0o13               # 8x305 only, can't use for normal XMIT
+    r14  = 0o14               # 8x305 only
+    r15  = 0o15               # 8x305 only
+    r16  = 0o16               # 8x305 only
+    ivr  = 0o17;  r17 = 0o10  # right bank register
     liv0 = 0o20
     liv1 = 0o21
     liv2 = 0o22
