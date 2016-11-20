@@ -34,6 +34,9 @@ class BadInstruction(Exception):
     def __init__(self, instr):
         super().__init__('bad instruction %04x' % instr)
 
+class InternalError(Exception):
+    pass
+
 
 
 class Reg(IntEnum):
@@ -72,6 +75,11 @@ class Reg(IntEnum):
 
     def is_iv(self):
         return self >= self.liv0
+
+    def rightmost_liv_bit(self):
+        if not self.is_iv():
+            assert(InternalError('register %s is not IV' % self.name))
+        return 7 - (self.value & 7)
 
     def is_src_reg(self, cpu_type = CpuType.s8x300):
         if self >= self.liv0:
@@ -353,23 +361,57 @@ class S8X30x:
 
         if disassemble_operands:
             ftemp = fields.copy()
+            blen_used = False
             for operand in form.operands:
-                if operand == OT.sr or operand == OT.siv:
+                if operand == OT.blen or operand == OT.brot:
+                    continue
+                elif operand == OT.sr:
                     value = Reg(ftemp['s']).name
                     del ftemp['s']
-                elif operand == OT.dr or operand == OT.div:
+                    if 'r' in ftemp:
+                        brot = ftemp['r']
+                        del ftemp['r']
+                        if brot != 0:
+                            value += '<<<%d' % brot
+                elif operand == OT.siv:
+                    r = Reg(ftemp['s'])
+                    del ftemp['s']
+                    blen_used = True
+                    rb = r.rightmost_liv_bit()
+                    if 'l' in ftemp:
+                        l = ftemp['l']
+                        if l == 0:
+                            l = 8
+                        lb = rb + l - 1
+                    else:
+                        lb = 7
+                    value = 's' + r.name[:3]
+                    if rb != 0 or lb != 7:
+                        if rb == lb:
+                            value += '[%d]' % lb
+                        else:
+                            value += '[%d:%d]' % (lb, rb)
+                elif operand == OT.dr:
                     value = Reg(ftemp['d']).name
                     del ftemp['d']
-                elif operand == OT.brot:
-                    v = ftemp['r']
-                    del ftemp['r']
-                    value = '(%d)' % v
-                elif operand == OT.blen:
-                    v = ftemp['l']
-                    del ftemp['l']
-                    if v == 0:
-                        v = 8
-                    value = '%d' % v
+                elif operand == OT.div:
+                    r = Reg(ftemp['d'])
+                    del ftemp['d']
+                    blen_used = True
+                    rb = r.rightmost_liv_bit()
+                    if 'l' in ftemp:
+                        l = ftemp['l']
+                        if l == 0:
+                            l = 8
+                        lb = rb + l - 1
+                    else:
+                        lb = 7
+                    value = 'd' + r.name[:3]
+                    if rb != 0 or lb != 7:
+                        if rb == lb:
+                            value += '[%d]' % lb
+                        else:
+                            value += '[%d:%d]' % (lb, rb)
                 elif operand == OT.imm:
                     value = self.ihex(ftemp['i'])
                     del ftemp['i']
@@ -383,6 +425,8 @@ class S8X30x:
                 else:
                     raise NotImplementedError('operand type ' + operand)
                 operands.append(value)
+            if blen_used:
+                del ftemp['l']
             if ftemp:
                 raise NotImplementedError('leftover fields: ' + str(ftemp))
 
