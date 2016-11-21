@@ -371,7 +371,7 @@ class S8X30x:
                         brot = ftemp['r']
                         del ftemp['r']
                         if brot != 0:
-                            value += '<<<%d' % brot
+                            value += '>>>%d' % brot
                 elif operand == OT.siv:
                     r = Reg(ftemp['s'])
                     del ftemp['s']

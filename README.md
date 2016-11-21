@@ -35,7 +35,7 @@ the length and rotation fields.
   as just the register name, e.g., `r5`.
 
 * When an entire register is used with rotation, it is represented as the
-  register name with a rotation operator, e.g., `r5<<<3`.
+  register name with a right rotation operator, e.g., `r5>>>3`.
 
 * When an entire I/O port is used as an operand, it is by default represented
   as `sliv` or `sriv` for left or right I/O ports as a source, and
