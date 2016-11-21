@@ -17,25 +17,51 @@ the firmware of the Western Digital WD100x family of disk controllers,
 and consequently some features that would be of use for general purpose
 8X300/8X305 support are not present.
 
-## Disassembler limitations
+## Syntax
 
-The support for Fast I/O Select ROMs is currently hard-coded to the
-configuration used by the WD1000 controller. The WD1001 will require
-some changes, but actually the Fast I/O select support should be
-generalized.
+The output of the disassember is in a custom syntax that does not match
+the Signetics MCCAP assembler, or any other existing assembler.  It is
+intended that an assembler be added to the s8x30x package in the future.
+
+Bit positions are designated with bit 0 as the least significant bit and
+bit 7 as the most significant bit, which is the opposite of the notation
+Signetics uses, but matches almost everything else using microprocessor
+and peripheral chips, including the I/O on the WD100x disk controllers.
+
+The syntax for source and destination registers and I/O ports incorporates
+the length and rotation fields.
+
+* When an entire register is used without rotation or length, it is represented
+  as just the register name, e.g., `r5`.
+
+* When an entire register is used with rotation, it is represented as the
+  register name with a rotation operator, e.g., `r5<<<3`.
+
+* When an entire I/O port is used as an operand, it is by default represented
+  as `sliv` or `sriv` for left or right I/O ports as a source, and
+  `dliv` or `driv` for left or right I/O ports used as a destination.  The
+  fast I/O select decoding, if used, may substitute the I/O port names.
+
+* When a single bit of an I/O port is used as an operand, it is represented
+  as the I/O port name subscripted by a bracketed bit number,
+  e.g., `sliv[7]` for the most significant bit of the source left I/O register.
+
+* When a range of bits of an I/O port are used as an operand, they are
+  represented as the I/O port name subscripted by a bracketed bit range,
+  witht he leftmost and rightmost bit numbers separated by a colon,
+  e.g., `sriv[3:0]` for the least significant four bits of the source right
+  I/O register.
+
+## Disassembler limitations
 
 As of this writing, the output of the disassembler has not been
 reassembled with any assembler, so it's possible and even likely that
 there are bugs resulting in inacurate disassembly.
 
-The original intent was to produce output compatible with the
-Signetics MCCAP assembler and the AS macro assembler.  As of this
-writing, the disassembler output doesn't match the syntax requirements
-of either sssembler. It turns out that MCCAP syntax and the AS
-8X300/8X305 syntax aren't actually compatible.
-
-I am not satisfied with either MCCAP or AS syntax, so it is my intention
-to switch to my own assembler syntax, and provide an assembler as well.
+The support for Fast I/O Select ROMs is currently hard-coded to the
+configuration used by the WD1000 controller. The WD1001 will require
+some changes, but actually the Fast I/O select support should be
+generalized.
 
 ## Disassembler usage
 

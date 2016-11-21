@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from enum import Enum, IntEnum, unique
+from enum import Enum, IntEnum
 
 CpuType = Enum('CpuType', ['s8x300', 's8x305'])
 
@@ -36,7 +36,6 @@ class BadInstruction(Exception):
 
 class InternalError(Exception):
     pass
-
 
 
 class Reg(IntEnum):
