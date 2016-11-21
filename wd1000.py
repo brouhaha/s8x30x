@@ -17,20 +17,20 @@
 import re
 
 class WD1000():
-    iv_name = { 'sriv': { 0: 'ram'},
-                'sliv': { 1: 'drqclk',
+    iv_name = { 'sriv': { 0: 'rd_ram'},
+                'sliv': { 1: 'drq_clk',
                           2: 'rd2',
-                          3: 'intclk',
-                          4: 'serdes',
+                          3: 'int_clk',
+                          4: 'rd_serdes',
                           5: 'rd5',
-                          6: 'host_port'},
-                'driv': { 0: 'ram'},
+                          6: 'rd_host_port'},
+                'driv': { 0: 'wr_ram'},
                 'dliv': { 1: 'drive_control',
                           2: 'ram_addr_low',
                           3: 'reset_index',
-                          4: 'serdes',
+                          4: 'wr_serdes',
                           5: 'drive_head_sel',
-                          6: 'host_port',
+                          6: 'wr_host_port',
                           7: 'mac_control'}}
 
     # process Fast I/O selects, currently hard-coded for WD1000
