@@ -73,7 +73,7 @@ class Reg(IntEnum):
     riv7 = 0o37
 
     def is_iv(self):
-        return self >= self.liv0
+        return self >= self.__class__.liv0
 
     def rightmost_liv_bit(self):
         if not self.is_iv():
@@ -81,21 +81,22 @@ class Reg(IntEnum):
         return 7 - (self.value & 7)
 
     def is_src_reg(self, cpu_type = CpuType.s8x300):
-        if self >= self.liv0:
+        c = self.__class__
+        if self.is_iv():
             return False
-        if self < self.ivl or self is self.ovf or self is self.r11:
+        if self < c.ivl or self is c.ovf or self is c.r11:
             return True;
         return cpu_type is CpuType.s8x305
 
     def is_dest_reg(self, cpu_type = CpuType.s8x300):
-        if self >= self.liv0:
+        c = self.__class__
+        if self.is_iv():
             return False
-        if self is self.ovf:
+        if self is c.ovf:
             return False
-        if self <= self.r11 or self is self.ivr:
+        if self <= c.r11 or self is c.ivr:
             return True;
         return cpu_type is CpuType.s8x305
-
         
 
 # operand type
