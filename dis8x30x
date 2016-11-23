@@ -21,6 +21,7 @@ from s8x30x import S8X30x
 from intelhex import IntelHex
 from memory import Memory
 from wd1000 import WD1000
+from wd1001 import WD1001
 
 
 
@@ -83,6 +84,18 @@ if __name__ == '__main__':
                            const='hex',
                            help = 'input file format is Intel hex')
     
+    fastio_group = parser.add_mutually_exclusive_group()
+    fmt_group.add_argument('--wd1000',
+                           action='store_const',
+                           dest='fastio',
+                           const='wd1000',
+                           help = 'decode WD1000 fast I/O select')
+    fmt_group.add_argument('--wd1001',
+                           action='store_const',
+                           dest='fastio',
+                           const='wd1001',
+                           help = 'decode WD1001 fast I/O select')
+
     parser.add_argument('-o', '--output', type=argparse.FileType('w'),
                         default = sys.stdout,
                         help = 'disassembly output file')
@@ -105,11 +118,12 @@ if __name__ == '__main__':
 
     if args.inputformat is 'hex':
         data = [IntelHex().read(d) for d in data]
-        
-    if len(data) > 2:
+
+    fast_io_decoder = None
+    if args.fastio == 'wd1000':
         fast_io_decoder = WD1000()
-    else:
-        fast_io_decoder = None
+    elif args.fastio == 'wd1001':
+        fast_io_decoder = WD1001()
 
     memory = Memory(data)
 
