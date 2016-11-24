@@ -17,7 +17,7 @@
 import argparse
 import sys
 
-from s8x30x import S8X30x
+from s8x30x import S8X30x, CpuType
 from intelhex import IntelHex
 from memory import Memory
 from wd1000 import WD1000
@@ -83,6 +83,18 @@ if __name__ == '__main__':
                            dest='inputformat',
                            const='hex',
                            help = 'input file format is Intel hex')
+
+    cpu_type_group = parser.add_mutually_exclusive_group()
+    cpu_type_group.add_argument('-0', '--8x300',
+                                action='store_const',
+                                dest='cpu_type',
+                                const=CpuType.s8x300,
+                                help = '8X300 processor')
+    cpu_type_group.add_argument('-5', '--8x305',
+                                action='store_const',
+                                dest='cpu_type',
+                                const=CpuType.s8x305,
+                                help = '8X305 processor')
     
     fastio_group = parser.add_mutually_exclusive_group()
     fmt_group.add_argument('--wd1000',
@@ -108,11 +120,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
     #print(args)
 
-    s8x30x = S8X30x()
-
     if len(args.input) < 2:
         print('Minimum two object files required', file = sys.stderr)
         sys.exit(2)
+
+    if 'cpu_type' not in args:
+        args.cpu_type = CpuType.s8x300
+
+    s8x30x = S8X30x(cpu_type = args.cpu_type)
 
     data = [f.read() for f in args.input]
 

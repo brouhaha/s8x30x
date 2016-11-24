@@ -72,17 +72,17 @@ class Reg(IntEnum):
     riv6 = 0o36
     riv7 = 0o37
 
-    def is_iv(self):
+    def is_iv(self, cpu_type = CpuType.s8x300):
         return self >= self.__class__.liv0
 
-    def rightmost_liv_bit(self):
-        if not self.is_iv():
+    def rightmost_liv_bit(self, cpu_type = CpuType.s8x300):
+        if not self.is_iv(cpu_type):
             assert(InternalError('register %s is not IV' % self.name))
         return 7 - (self.value & 7)
 
     def is_src_reg(self, cpu_type = CpuType.s8x300):
         c = self.__class__
-        if self.is_iv():
+        if self.is_iv(cpu_type):
             return False
         if self < c.ivl or self is c.ovf or self is c.r11:
             return True;
@@ -90,7 +90,7 @@ class Reg(IntEnum):
 
     def is_dest_reg(self, cpu_type = CpuType.s8x300):
         c = self.__class__
-        if self.is_iv():
+        if self.is_iv(cpu_type):
             return False
         if self is c.ovf:
             return False
@@ -313,15 +313,15 @@ class S8X30x:
                 fields[f] = self.__extract_field(opcode, form.fields, f)
             if 's' in fields:
                 sr = Reg(fields['s'])
-                if OT.sr in form.operands and not sr.is_src_reg():
+                if OT.sr in form.operands and not sr.is_src_reg(self.cpu_type):
                     continue
-                elif OT.siv in form.operands and not sr.is_iv():
+                elif OT.siv in form.operands and not sr.is_iv(self.cpu_type):
                     continue
             if 'd' in fields:
                 dr = Reg(fields['d'])
-                if OT.dr in form.operands and not dr.is_dest_reg():
+                if OT.dr in form.operands and not dr.is_dest_reg(self.cpu_type):
                     continue
-                elif OT.div in form.operands and not dr.is_iv():
+                elif OT.div in form.operands and not dr.is_iv(self.cpu_type):
                     continue
             if 'j' in fields:
                 if OT.jmp8 in form.operands:
@@ -350,7 +350,7 @@ class S8X30x:
         return s
 
 
-    def disassemble_inst(self, fw, pc, symtab_by_value = {}, disassemble_operands = True, cpu_type = CpuType.s8x300):
+    def disassemble_inst(self, fw, pc, symtab_by_value = {}, disassemble_operands = True):
         try:
             inst, form, fields = self.inst_search(fw, pc)
         except BadInstruction:
@@ -433,7 +433,8 @@ class S8X30x:
         return s, ','.join(operands), fields
 
 
-    def __init__(self):
+    def __init__(self, cpu_type = CpuType.s8x300):
+        self.cpu_type = cpu_type
         self.__opcode_init()
 
 if __name__ == '__main__':
